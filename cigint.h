@@ -57,10 +57,10 @@ int cigint_is0(Cigint a);
 Cigint cigint_add(Cigint lhs, Cigint rhs);
 Cigint cigint_sub(Cigint lhs, Cigint rhs);
 Cigint cigint_mul(Cigint lhs, Cigint rhs);
-Cigint cigint_pow(Cigint lhs, uint amnt);
+Cigint cigint_spow(Cigint lhs, uint amnt);
 Cigint cigint_div(Cigint lhs, Cigint rhs);
 Cigint cigint_mod(Cigint lhs, Cigint rhs);
-void cigint_divmod(Cigint lhs, Cigint rhs, Cigint *q, Cigint *r);
+void cigint_divrem(Cigint lhs, Cigint rhs, Cigint *q, Cigint *r);
 uint cigint_print10(Cigint a);
 uint cigint_printf(const char *fmt, ...);
 
@@ -86,9 +86,11 @@ uint cigint_printf(const char *fmt, ...);
 #define sub cigint_sub
 #define mul cigint_mul
 #define pow cigint_pow
+#define spow cigint_spow
+#define powmod cigint_powmod
 #define div cigint_div
 #define mod cigint_mod
-#define divmod cigint_divmod
+#define divrem cigint_divrem
 #define print10 cigint_print10
 #define cprintf cigint_printf
 #endif
@@ -162,12 +164,12 @@ Cigint cigint_set_bit(Cigint a, uint pos, uint val) {
 }
 
 uint cigint_print2(Cigint a) {
-	uint counter = printf("0b"), old_counter = counter;
+	uint counter = putchar('0') + putchar('b'), old_counter = counter;
 	int bit_index = cigint_highest_order(a) - 1;
 
 	while (bit_index >= 0) {
-		int digit = cigint_get_bit(a, bit_index);
-		counter += printf("%d", digit);
+		uint digit = cigint_get_bit(a, bit_index) != 0;
+		counter += putchar(digit + '0');
 		bit_index--;
 	}
 	if (counter == old_counter) {
@@ -319,7 +321,10 @@ Cigint cigint_mul(Cigint lhs, Cigint rhs) {
 	return res;
 }
 
-Cigint cigint_pow(Cigint lhs, uint amnt) {
+// https://nullprogram.com/blog/2023/09/27/
+#define cigint_pow(...) cigint_powx(__VA_ARGS__, cigint_powmod, cigint_spow)(__VA_ARGS__)
+#define cigint_powx(a, b, c, d, ...) d
+Cigint cigint_spow(Cigint lhs, uint amnt) {
 	Cigint res = {0};
 	res.data[CIGINT_N - 1] = 1;
 	while (amnt > 0) {
@@ -328,6 +333,22 @@ Cigint cigint_pow(Cigint lhs, uint amnt) {
 		}
 
 		lhs = cigint_mul(lhs, lhs);
+		amnt /= 2;
+	}
+	return res;
+}
+
+Cigint cigint_powmod(Cigint lhs, uint amnt, Cigint m) {
+	Cigint res = {0};
+	res.data[CIGINT_N - 1] = 1;
+	while (amnt > 0) {
+		if (amnt % 2 == 1) {
+			res = cigint_mul(res, lhs);
+			res = cigint_mod(res, m);
+		}
+
+		lhs = cigint_mul(lhs, lhs);
+		lhs = cigint_mod(lhs, m);
 		amnt /= 2;
 	}
 	return res;
@@ -375,7 +396,7 @@ Cigint cigint_mod(Cigint lhs, Cigint rhs) {
 	return r;
 }
 
-void cigint_divmod(Cigint lhs, Cigint rhs, Cigint *q, Cigint *r) {
+void cigint_divrem(Cigint lhs, Cigint rhs, Cigint *q, Cigint *r) {
 	assert(!cigint_is0(rhs));
 	int comp = cigint_cmp(lhs, rhs);
 	if (comp <= 0) {
@@ -408,7 +429,7 @@ void cigint_divmod(Cigint lhs, Cigint rhs, Cigint *q, Cigint *r) {
 	}
 }
 
-void cigint_sdivmod(Cigint lhs, uint rhs, Cigint *q, uint *r) {
+void cigint_sdivrem(Cigint lhs, uint rhs, Cigint *q, uint *r) {
 	assert(rhs != 0);
 	uint hord = cigint_highest_order(lhs);
 	if (hord < SIZEOF_UINT && lhs.data[CIGINT_N - 1] <= rhs) {
@@ -450,7 +471,7 @@ uint cigint_print10(Cigint a) {
 
 	Cigint q;
 	uint r;
-	cigint_sdivmod(a, 100000000, &q, &r);
+	cigint_sdivrem(a, 100000000, &q, &r);
 
 	uint counter = cigint_print10(q);
 	if (counter == 0) {
@@ -500,7 +521,7 @@ uint cigint_printf(const char *fmt, ...) {
 					counter += printf("%s", str);
 				}
 				break;
-				}
+			}
 			default: {
 				counter += putchar(*fmt);
 			}
