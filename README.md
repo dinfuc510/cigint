@@ -8,11 +8,11 @@
 ```
 
 - There is a strip option to remove the prefix `cigint_` from function names by define `CIGINT_STRIP_PREFIX`.
-Keep in mind that the stripped name of `cigint_and` has a letter `c` at the beginning, `cand`, to avoid conflicts with C++ macros.
-The same applies to `cigint_or`, `cigint_xor` and `cigint_not`
+Keep in mind that the stripped name of `cigint_and` has a letter `c` at the beginning, `cand`, to avoid conflicts with C functions and C++ macros.
+The same applies to `cigint_or`, `cigint_xor`, `cigint_not`, `cigint_printf`
 
-- To specific the number of storage bytes, please define `CIGINT_N` as the result of dividing that number by 4. For example, if you need 32 bytes, then you define
+- To specific the number of storage bytes, use `CIGINT_NBITS`. For example:
 ``` c
-#define CIGINT_N (32/4)
+#define CIGINT_NBITS (32) // 32-bit integers
 #include "cigint.h"
 ```
