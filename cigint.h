@@ -91,6 +91,7 @@ uint cigint_printf(const char *fmt, ...);
 #define div cigint_div
 #define mod cigint_mod
 #define divrem cigint_divrem
+#define modinv cigint_modinv
 #define print10 cigint_print10
 #define cprintf cigint_printf
 #endif
@@ -108,15 +109,15 @@ static uint u1_get_bit(uint num, uint pos) {
 		return 0;
 	}
 
-	return (num & (1UL << pos)) >> pos;
+	return (num >> pos) & 1;
 }
 
 static uint u1_set_bit(uint num, uint pos, uint val) {
-	if (pos >= SIZEOF_UINT) {
+	if (pos >= SIZEOF_UINT || (val != 0 && val != 1)) {
 		return 0;
 	}
 
-	return (num & ~(1UL << pos)) | (val << pos);
+	return (val == 0) ? (num & ~(1ul << pos)) : (num | (1ul << pos));
 }
 
 static uint u1_shl(uint num, uint amnt) {
@@ -463,6 +464,35 @@ void cigint_sdivrem(Cigint lhs, uint rhs, Cigint *q, uint *r) {
 	}
 }
 
+Cigint cigint_modinv(Cigint a, Cigint mod) {
+	Cigint t = cigint_from_uint(0);
+	Cigint new_t = cigint_from_uint(1);
+	Cigint r = mod;
+	Cigint new_r = a;
+	Cigint tmp;
+
+	while (!cigint_is0(new_r)) {
+		Cigint quotient = cigint_div(r, new_r);
+		tmp = t;
+		t = new_t;
+		new_t = cigint_sub(tmp, cigint_mul(quotient, new_t));
+
+		tmp = r;
+		r = new_r;
+		new_r = cigint_sub(tmp, cigint_mul(quotient, new_r));
+	}
+
+	if (cigint_cmp(r, cigint_from_uint(1)) > 0) {
+		return (Cigint) {0};
+	}
+
+	if (cigint_cmp(t, mod) > 0) {
+		t = cigint_add(t, mod);
+	}
+
+	return t;
+}
+
 /* TODO: stack overflow */
 uint cigint_print10(Cigint a) {
 	if (cigint_is0(a)) {
@@ -504,7 +534,13 @@ uint cigint_printf(const char *fmt, ...) {
 							counter += cigint_print2(num);
 						}
 						else {
-							counter += cigint_print10(num);
+							if (cigint_is0(num)) {
+								putchar('0');
+								counter++;
+							}
+							else {
+								counter += cigint_print10(num);
+							}
 						}
 					}
 				}
