@@ -266,7 +266,7 @@ uint cigint_highest_order(Cigint num) {
 Cigint cigint_pow2(uint amnt) {
 	assert(amnt < CIGINT_N * SIZEOF_UINT);
 	Cigint res = {0};
-	res.data[CIGINT_N - 1 - amnt / SIZEOF_UINT] = (1 << (amnt % SIZEOF_UINT));
+	res.data[CIGINT_N - 1 - amnt / SIZEOF_UINT] = (1ul << (amnt % SIZEOF_UINT));
 	return res;
 }
 
@@ -322,7 +322,7 @@ Cigint cigint_mul(Cigint lhs, Cigint rhs) {
 	return res;
 }
 
-// https://nullprogram.com/blog/2023/09/27/
+/* https://nullprogram.com/blog/2023/09/27/ */
 #define cigint_pow(...) cigint_powx(__VA_ARGS__, cigint_powmod, cigint_spow)(__VA_ARGS__)
 #define cigint_powx(a, b, c, d, ...) d
 Cigint cigint_spow(Cigint lhs, uint amnt) {
